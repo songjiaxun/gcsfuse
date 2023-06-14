@@ -20,31 +20,18 @@ nohup /pytorch_dino/gcsfuse/gcsfuse --foreground --type-cache-ttl=1728000s \
         --stackdriver-export-interval=60s \
         --implicit-dirs \
         --max-conns-per-host=100 \
-        --debug_fuse \
-        --debug_gcs \
         --log-file run_artifacts/gcsfuse.log \
         --log-format text \
-       gcsfuse-ml-data gcsfuse_data > "run_artifacts/gcsfuse.out" 2> "run_artifacts/gcsfuse.err" &
+       gke-gcs-fuse-csi-demo gcsfuse_data > "run_artifacts/gcsfuse.out" 2> "run_artifacts/gcsfuse.err" &
 
 # Update the pytorch library code to bypass the kernel-cache
 echo "Updating the pytorch library code to bypass the kernel-cache..."
-echo "
-def pil_loader(path: str) -> Image.Image:
-    fd = os.open(path, os.O_DIRECT)
-    f = os.fdopen(fd, \"rb\")
-    img = Image.open(f)
-    rgb_img = img.convert(\"RGB\")
-    f.close()
-    return rgb_img
-" > bypassed_code.py
+echo "        os.system(\"sh -c 'echo 3 > /proc/sys/vm/drop_caches'\")" > bypassed_code.py
 
-folder_file="/opt/conda/lib/python3.8/site-packages/torchvision/datasets/folder.py"
-x=$(grep -n "def pil_loader(path: str) -> Image.Image:" $folder_file | cut -f1 -d ':')
-y=$(grep -n "def accimage_loader(path: str) -> Any:" $folder_file | cut -f1 -d ':')
-y=$((y - 2))
-lines="$x,$y"
-sed -i "$lines"'d' $folder_file
-sed -i "$x"'r bypassed_code.py' $folder_file
+controller_file="dino/main_dino.py";
+x=$(grep -n "# ============ training one epoch of DINO ... ============" $controller_file | cut -f1 -d ':');
+x=$((x - 2));
+sed -i "$x"'r bypassed_code.py' $controller_file;
 
 # Fix the caching issue - comes when we run the model first time with 8
 # nproc_per_node - by downloading the model in single thread environment.
@@ -55,7 +42,7 @@ python -c 'import torch;torch.hub.list("facebookresearch/xcit:main")'
 echo "Running the pytorch dino model..."
 experiment=dino_experiment
 python3 -m torch.distributed.launch \
-  --nproc_per_node=2 dino/main_dino.py \
+  --nproc_per_node=8 dino/main_dino.py \
   --arch vit_small \
   --num_workers 20 \
   --data_path gcsfuse_data/imagenet/ILSVRC/Data/CLS-LOC/train/ \
@@ -63,7 +50,7 @@ python3 -m torch.distributed.launch \
   --norm_last_layer False \
   --use_fp16 False \
   --clip_grad 0 \
-  --epochs 100 \
+  --epochs 800 \
   --global_crops_scale 0.25 1.0 \
   --local_crops_number 10 \
   --local_crops_scale 0.05 0.25 \

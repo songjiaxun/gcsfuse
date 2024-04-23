@@ -142,6 +142,9 @@ func (t *YamlParserTest) TestReadConfigFile_ValidConfig() {
 	assert.Equal(t.T(), -1, mountConfig.MaxParallelDownloads)
 	assert.Equal(t.T(), 100, mountConfig.DownloadChunkSizeMB)
 	assert.False(t.T(), mountConfig.FileCacheConfig.EnableCRC)
+
+	// monitoring config
+	assert.Equal(t.T(), 8080, mountConfig.MonitoringConfig.PrometheusPort)
 }
 
 func (t *YamlParserTest) TestReadConfigFile_InvalidLogConfig() {
@@ -328,4 +331,12 @@ func (t *YamlParserTest) TestReadConfigFile_ListConfig_ValidKernelListCacheTtl()
 	assert.NoError(t.T(), err)
 	assert.NotNil(t.T(), mountConfig)
 	assert.Equal(t.T(), int64(10), mountConfig.ListConfig.KernelListCacheTtlSeconds)
+}
+
+func (t *YamlParserTest) TestReadConfigFile_MonitoringConfig_UnsetPrometheusPort() {
+	mountConfig, err := ParseConfigFile("testdata/monitoring_config/unset_prometheus_port.yaml")
+
+	assert.NoError(t.T(), err)
+	assert.NotNil(t.T(), mountConfig)
+	assert.Equal(t.T(), 0, mountConfig.MonitoringConfig.PrometheusPort)
 }

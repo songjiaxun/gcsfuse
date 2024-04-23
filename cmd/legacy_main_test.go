@@ -188,6 +188,9 @@ func (t *MainTest) TestStringifyShouldReturnAllFlagsPassedInMountConfigAsMarshal
 			EnableEmptyManagedFolders: false,
 		},
 		EnableHNS: true,
+		MonitoringConfig: config.MonitoringConfig{
+			PrometheusPort: 8080,
+		},
 	}
 
 	actual, err := util.Stringify(mountConfig)
@@ -218,7 +221,8 @@ func (t *MainTest) TestStringifyShouldReturnAllFlagsPassedInMountConfigAsMarshal
 		`"AnonymousAccess":false`,
 		`"EnableHNS":true`,
 		`"IgnoreInterrupts":false`,
-		`"DisableParallelDirops":false}`,
+		`"DisableParallelDirops":false`,
+		`"PrometheusPort":8080}`,
 	}, ",")
 	assert.Equal(t.T(), expected, actual)
 }
@@ -256,7 +260,8 @@ func (t *MainTest) TestEnableHNSFlagFalse() {
 		`"AnonymousAccess":false`,
 		`"EnableHNS":false`,
 		`"IgnoreInterrupts":false`,
-		`"DisableParallelDirops":false}`,
+		`"DisableParallelDirops":false`,
+		`"PrometheusPort":0}`,
 	}, ",")
 	assert.Equal(t.T(), expected, actual)
 }
@@ -317,6 +322,7 @@ func (t *MainTest) TestStringifyShouldReturnAllFlagsPassedInFlagStorageAsMarshal
 		`"EnableNonexistentTypeCache":false`,
 		`"StackdriverExportInterval":0`,
 		`"OtelCollectorAddress":""`,
+		`"PrometheusPort":0`,
 		`"LogFile":""`,
 		`"LogFormat":""`,
 		`"ExperimentalEnableJsonRead":false`,
